@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>三國志戰略版 同盟信件編輯器</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --bg2:#111827;
+      --panel:#1f2937;
+      --line:#334155;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --blue:#60a5fa;
+      --red:#f87171;
+      --green:#4ade80;
+      --yellow:#fde047;
+      --accent:#38bdf8;
+      --danger:#ef4444;
+      --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top, rgba(56,189,248,.08), transparent 30%),
+        linear-gradient(180deg,#0b1220 0%, #0f172a 100%);
+      min-height:100vh;
+    }
+
+    .container{
+      width:min(1280px, calc(100% - 24px));
+      margin:24px auto;
+    }
+
+    .header,.toolbar,.panel,.dialog{
+      background:rgba(17,24,39,.92);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+    }
+
+    .header{
+      padding:20px;
+      margin-bottom:16px;
+    }
+
+    .header h1{
+      margin:0 0 8px;
+      font-size:28px;
+      line-height:1.2;
+    }
+
+    .header p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.8;
+    }
+
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:14px;
+      margin-bottom:16px;
+      position:sticky;
+      top:10px;
+      z-index:10;
+      backdrop-filter:blur(8px);
+    }
+
+    button{
+      appearance:none;
+      border:1px solid var(--line);
+      background:var(--panel);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 14px;
+      font-size:15px;
+      cursor:pointer;
+      transition:.12s ease;
+      font-weight:700;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+      background:#273449;
+      border-color:#475569;
+    }
+
+    button:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .btn-blue{color:var(--blue)}
+    .btn-red{color:var(--red)}
+    .btn-green{color:var(--green)}
+    .btn-yellow{color:var(--yellow)}
+    .btn-danger{border-color:var(--danger)}
+    .btn-copy{border-color:var(--accent)}
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap:16px;
+    }
+
+    .panel-head{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+    }
+
+    .panel-head h2{
+      margin:0 0 4px;
+      font-size:18px;
+    }
+
+    .panel-head p{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.7;
+    }
+
+    .panel-body{
+      padding:16px;
+    }
+
+    textarea{
+      font-family:inherit;
+    }
+
+    textarea.editor{
+      width:100%;
+      min-height:420px;
+      resize:vertical;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#0b1220;
+      color:#fff;
+      padding:14px 16px;
+      font-size:16px;
+      line-height:1.8;
+      outline:none;
+      white-space:pre-wrap;
+      word-break:break-word;
+      -webkit-text-size-adjust:100%;
+      touch-action:manipulation;
+    }
+
+    .preview{
+      width:100%;
+      min-height:220px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#0b1220;
+      padding:14px 16px;
+      line-height:1.8;
+      white-space:pre-wrap;
+      word-break:break-word;
+      overflow:auto;
+      color:#fff;
+    }
+
+    .output{
+      width:100%;
+      min-height:220px;
+      resize:vertical;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#0b1220;
+      color:#e2e8f0;
+      padding:14px 16px;
+      font-size:14px;
+      line-height:1.7;
+      outline:none;
+      white-space:pre-wrap;
+      word-break:break-word;
+      margin-top:12px;
+    }
+
+    .status,.rules,.legend{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.02);
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.7;
+    }
+
+    .status strong,.rules strong,.legend strong{
+      color:var(--text);
+    }
+
+    .msg{
+      min-height:24px;
+      margin-top:12px;
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .info{color:#7dd3fc}
+    .success{color:#4ade80}
+    .warn{color:#fde047}
+    .error{color:#f87171}
+
+    .c-blue{color:var(--blue)}
+    .c-red{color:var(--red)}
+    .c-green{color:var(--green)}
+    .c-yellow{color:var(--yellow)}
+
+    .token-newline{
+      display:inline-block;
+      border:1px dashed rgba(148,163,184,.45);
+      background:rgba(148,163,184,.12);
+      color:#cbd5e1;
+      border-radius:8px;
+      padding:0 6px;
+      margin:0 2px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      line-height:1.4;
+    }
+
+    .footer{
+      margin-top:16px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.8;
+    }
+
+    code{
+      background:rgba(255,255,255,.06);
+      padding:2px 6px;
+      border-radius:6px;
+    }
+
+    .dialog-mask{
+      position:fixed;
+      inset:0;
+      background:rgba(2,6,23,.66);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:100;
+      padding:16px;
+    }
+
+    .dialog-mask.show{
+      display:flex;
+    }
+
+    .dialog{
+      width:min(440px, 100%);
+      padding:18px;
+    }
+
+    .dialog h3{
+      margin:0 0 10px;
+      font-size:20px;
+    }
+
+    .dialog p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.8;
+    }
+
+    .dialog-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top:16px;
+    }
+
+    @media (max-width: 960px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+
+      .header h1{
+        font-size:24px;
+      }
+
+      textarea.editor{
+        min-height:360px;
+        font-size:16px;
+      }
+
+      .toolbar{
+        gap:8px;
+        padding:12px;
+      }
+
+      .toolbar button{
+        flex:1 1 calc(25% - 8px);
+        min-width:72px;
+        padding:12px 10px;
+        font-size:15px;
+      }
+    }
+
+    @media (max-width: 560px){
+      .container{
+        width:min(100%, calc(100% - 12px));
+        margin:12px auto;
+      }
+
+      .header,.toolbar,.panel{
+        border-radius:14px;
+      }
+
+      .panel-body{
+        padding:12px;
+      }
+
+      .toolbar button{
+        flex:1 1 calc(33.333% - 8px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="header">
+      <h1>三國志戰略版 同盟信件編輯器</h1>
+      <p>
+        成品版：使用原生文字輸入 + 資料模型格式系統，提升手機選字穩定性、複雜巢狀精準度、格式套用可靠性。<br>
+        顏色規則：藍字 <code>@文字@</code>、紅字 <code>&amp;文字&amp;</code>、綠字 <code>$文字$</code>、黃字 <code>#文字#</code>。
+      </p>
+    </section>
+
+    <section class="toolbar" id="toolbar">
+      <button type="button" class="btn-blue" data-action="color" data-color="blue">藍字</button>
+      <button type="button" class="btn-red" data-action="color" data-color="red">紅字</button>
+      <button type="button" class="btn-green" data-action="color" data-color="green">綠字</button>
+      <button type="button" class="btn-yellow" data-action="color" data-color="yellow">黃字</button>
+      <button type="button" data-action="newline-token">換行</button>
+      <button type="button" data-action="clear-format">清除格式</button>
+      <button type="button" data-action="undo" id="undoBtn">復原</button>
+      <button type="button" data-action="redo" id="redoBtn">重做</button>
+      <button type="button" class="btn-copy" data-action="copy">複製</button>
+      <button type="button" class="btn-danger" data-action="clear-all">清空全文</button>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>輸入區</h2>
+          <p>
+            直接輸入文字並使用原生選取套用格式。<br>
+            按 <strong>Enter</strong> 是真正換行；按工具列 <strong>換行</strong> 會插入字面值 <code>\n</code>。
+          </p>
+        </div>
+        <div class="panel-body">
+          <textarea
+            id="editor"
+            class="editor"
+            placeholder="請在此輸入同盟信件內容，選取文字後按上方按鈕套用顏色。"
+            spellcheck="false"
+          ></textarea>
+
+          <div class="status" id="editorStatus"><strong>編輯狀態：</strong>等待輸入</div>
+          <div class="legend">
+            <strong>選取規則：</strong>
+            此版本直接使用原生文字選取，不在輸入區做富文字 DOM 編輯，因此在手機與輸入法情境下更穩定。
+          </div>
+          <div class="msg info" id="message"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>預覽與輸出</h2>
+          <p>上方為彩色預覽；下方為可直接複製到遊戲內的輸出結果。</p>
+        </div>
+        <div class="panel-body">
+          <div id="preview" class="preview"></div>
+          <textarea id="output" class="output" readonly spellcheck="false"></textarea>
+
+          <div class="status" id="outputStatus"><strong>輸出狀態：</strong>已自動轉換</div>
+
+          <div class="rules">
+            <strong>換行規則：</strong><br>
+            1. 使用者按 <strong>Enter</strong> 的實際換行 → 輸出保持<strong>真正換行</strong><br>
+            2. 使用者按工具列 <strong>換行</strong> → 插入字面值 <code>\n</code>，輸出顯示為 <code>\n</code><br>
+            3. 同色重疊 → <strong>自動合併</strong><br>
+            4. 不同色可巢狀 → <strong>預覽採真正巢狀渲染</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      本頁會嘗試自動保存草稿；若目前執行環境不允許使用本機儲存，則會自動改為本次頁面暫存，不影響編輯功能。
+    </div>
+  </div>
+
+  <div class="dialog-mask" id="dialogMask" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+      <h3 id="dialogTitle">確認清空全文</h3>
+      <p>這會清除目前文字、格式資料，以及可用時的本機草稿。此操作可再用「復原」返回目前這次頁面中的內容。</p>
+      <div class="dialog-actions">
+        <button type="button" id="dialogCancel">取消</button>
+        <button type="button" class="btn-danger" id="dialogConfirm">確認清空</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const editor = document.getElementById('editor');
+      const preview = document.getElementById('preview');
+      const output = document.getElementById('output');
+      const message = document.getElementById('message');
+      const editorStatus = document.getElementById('editorStatus');
+      const outputStatus = document.getElementById('outputStatus');
+      const undoBtn = document.getElementById('undoBtn');
+      const redoBtn = document.getElementById('redoBtn');
+      const toolbar = document.getElementById('toolbar');
+
+      const dialogMask = document.getElementById('dialogMask');
+      const dialogCancel = document.getElementById('dialogCancel');
+      const dialogConfirm = document.getElementById('dialogConfirm');
+
+      const STORAGE_KEY = 'sgz-mail-editor-model-v4';
+
+      const MARKERS = {
+        blue: '@',
+        red: '&',
+        green: '$',
+        yellow: '#'
+      };
+
+      const COLOR_CLASS = {
+        blue: 'c-blue',
+        red: 'c-red',
+        green: 'c-green',
+        yellow: 'c-yellow'
+      };
+
+      let state = createEmptyState();
+      let history = [];
+      let historyIndex = -1;
+      let isRestoring = false;
+
+      const memoryStorage = {};
+      const storage = createSafeStorage();
+
+      function createSafeStorage() {
+        try {
+          const probeKey = '__storage_probe__';
+          window.localStorage.setItem(probeKey, '1');
+          window.localStorage.removeItem(probeKey);
+          return {
+            available: true,
+            type: 'localStorage',
+            getItem(key) {
+              return window.localStorage.getItem(key);
+            },
+            setItem(key, value) {
+              window.localStorage.setItem(key, value);
+            },
+            removeItem(key) {
+              window.localStorage.removeItem(key);
+            }
+          };
+        } catch (e) {
+          return {
+            available: false,
+            type: 'memory',
+            getItem(key) {
+              return Object.prototype.hasOwnProperty.call(memoryStorage, key)
+                ? memoryStorage[key]
+                : null;
+            },
+            setItem(key, value) {
+              memoryStorage[key] = String(value);
+            },
+            removeItem(key) {
+              delete memoryStorage[key];
+            }
+          };
+        }
+      }
+
+      function createEmptyState() {
+        return {
+          text: '',
+          spans: []
+        };
+      }
+
+      function cloneState(s) {
+        return {
+          text: s.text,
+          spans: s.spans.map(x => ({ start: x.start, end: x.end, color: x.color }))
+        };
+      }
+
+      function showMessage(text, type = 'info') {
+        message.textContent = text;
+        message.className = 'msg ' + type;
+        clearTimeout(showMessage._timer);
+        showMessage._timer = setTimeout(() => {
+          message.textContent = '';
+          message.className = 'msg info';
+        }, 2400);
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function pushHistory(nextState, replaceCurrent = false) {
+        const snapshot = cloneState(nextState);
+
+        if (replaceCurrent && historyIndex >= 0) {
+          history[historyIndex] = snapshot;
+        } else {
+          history = history.slice(0, historyIndex + 1);
+          history.push(snapshot);
+          historyIndex = history.length - 1;
+        }
+
+        updateUndoRedoButtons();
+      }
+
+      function updateUndoRedoButtons() {
+        undoBtn.disabled = historyIndex <= 0;
+        redoBtn.disabled = historyIndex >= history.length - 1;
+      }
+
+      function restoreHistory(index) {
+        if (index < 0 || index >= history.length) return;
+        historyIndex = index;
+        isRestoring = true;
+        state = cloneState(history[historyIndex]);
+        editor.value = state.text;
+        isRestoring = false;
+        renderAll();
+        saveDraft();
+        updateUndoRedoButtons();
+      }
+
+      function undo() {
+        if (historyIndex > 0) {
+          restoreHistory(historyIndex - 1);
+          showMessage('已復原。', 'success');
+        }
+      }
+
+      function redo() {
+        if (historyIndex < history.length - 1) {
+          restoreHistory(historyIndex + 1);
+          showMessage('已重做。', 'success');
+        }
+      }
+
+      function saveDraft() {
+        try {
+          storage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {}
+      }
+
+      function loadDraft() {
+        try {
+          const raw = storage.getItem(STORAGE_KEY);
+          if (!raw) return false;
+
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed.text !== 'string' || !Array.isArray(parsed.spans)) {
+            return false;
+          }
+
+          state = {
+            text: parsed.text,
+            spans: normalizeSpans(parsed.spans, parsed.text.length)
+          };
+
+          editor.value = state.text;
+          pushHistory(state);
+          renderAll();
+          editorStatus.innerHTML = '<strong>編輯狀態：</strong>已載入上次草稿';
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function clearDraft() {
+        try {
+          storage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+      }
+
+      function colorOrder(a, b) {
+        const order = { blue: 1, red: 2, green: 3, yellow: 4 };
+        return (order[a] || 999) - (order[b] || 999);
+      }
+
+      function normalizeSpans(spans, textLength) {
+        const valid = spans
+          .filter(s =>
+            s &&
+            typeof s.start === 'number' &&
+            typeof s.end === 'number' &&
+            typeof s.color === 'string' &&
+            MARKERS[s.color] &&
+            s.start < s.end
+          )
+          .map(s => ({
+            start: Math.max(0, Math.min(textLength, s.start)),
+            end: Math.max(0, Math.min(textLength, s.end)),
+            color: s.color
+          }))
+          .filter(s => s.start < s.end);
+
+        const byColor = {};
+        Object.keys(MARKERS).forEach(c => byColor[c] = []);
+
+        valid.forEach(s => byColor[s.color].push({ start: s.start, end: s.end, color: s.color }));
+
+        const merged = [];
+        for (const color of Object.keys(byColor)) {
+          const arr = byColor[color].sort((a, b) => a.start - b.start || a.end - b.end);
+          const out = [];
+
+          for (const span of arr) {
+            const last = out[out.length - 1];
+            if (!last) {
+              out.push({ ...span });
+              continue;
+            }
+
+            if (span.start <= last.end) {
+              last.end = Math.max(last.end, span.end);
+            } else {
+              out.push({ ...span });
+            }
+          }
+
+          merged.push(...out);
+        }
+
+        return merged.sort((a, b) => a.start - b.start || b.end - a.end || colorOrder(a.color, b.color));
+      }
+
+      function commonPrefixLength(a, b) {
+        const len = Math.min(a.length, b.length);
+        let i = 0;
+        while (i < len && a.charCodeAt(i) === b.charCodeAt(i)) i++;
+        return i;
+      }
+
+      function commonSuffixLength(a, b, prefix) {
+        const maxA = a.length - prefix;
+        const maxB = b.length - prefix;
+        const len = Math.min(maxA, maxB);
+        let i = 0;
+        while (
+          i < len &&
+          a.charCodeAt(a.length - 1 - i) === b.charCodeAt(b.length - 1 - i)
+        ) i++;
+        return i;
+      }
+
+      function adjustSpansForTextChange(oldText, newText, oldSpans) {
+        const prefix = commonPrefixLength(oldText, newText);
+        const suffix = commonSuffixLength(oldText, newText, prefix);
+
+        const oldMidStart = prefix;
+        const oldMidEnd = oldText.length - suffix;
+        const newMidStart = prefix;
+        const newMidEnd = newText.length - suffix;
+
+        const delta = (newMidEnd - newMidStart) - (oldMidEnd - oldMidStart);
+
+        const next = [];
+
+        for (const span of oldSpans) {
+          const s = span.start;
+          const e = span.end;
+
+          if (e <= oldMidStart) {
+            next.push({ ...span });
+            continue;
+          }
+
+          if (s >= oldMidEnd) {
+            next.push({ start: s + delta, end: e + delta, color: span.color });
+            continue;
+          }
+
+          if (s < oldMidStart && e > oldMidEnd) {
+            next.push({ start: s, end: e + delta, color: span.color });
+            continue;
+          }
+
+          if (s < oldMidStart && e > oldMidStart && e <= oldMidEnd) {
+            next.push({ start: s, end: oldMidStart, color: span.color });
+            continue;
+          }
+
+          if (s >= oldMidStart && s < oldMidEnd && e > oldMidEnd) {
+            next.push({ start: newMidEnd, end: e + delta, color: span.color });
+            continue;
+          }
+
+          if (s >= oldMidStart && e <= oldMidEnd) {
+            continue;
+          }
+        }
+
+        return normalizeSpans(next, newText.length);
+      }
+
+      function getSelectionRange() {
+        return {
+          start: editor.selectionStart,
+          end: editor.selectionEnd
+        };
+      }
+
+      function setSelectionRange(start, end) {
+        editor.focus();
+        editor.setSelectionRange(start, end);
+      }
+
+      function applyColor(color) {
+        const { start, end } = getSelectionRange();
+        if (start === end) {
+          showMessage('請先選取文字後再套用顏色。', 'warn');
+          return;
+        }
+
+        state.spans = normalizeSpans(
+          state.spans.concat([{ start, end, color }]),
+          state.text.length
+        );
+
+        pushHistory(state);
+        renderAll();
+        saveDraft();
+        setSelectionRange(start, end);
+        showMessage('已套用顏色格式。', 'success');
+      }
+
+      function clearFormat() {
+        const { start, end } = getSelectionRange();
+        if (start === end) {
+          showMessage('請先選取要清除格式的文字。', 'warn');
+          return;
+        }
+
+        const next = [];
+
+        for (const span of state.spans) {
+          if (span.end <= start || span.start >= end) {
+            next.push({ ...span });
+            continue;
+          }
+
+          if (span.start < start) {
+            next.push({ start: span.start, end: start, color: span.color });
+          }
+
+          if (span.end > end) {
+            next.push({ start: end, end: span.end, color: span.color });
+          }
+        }
+
+        state.spans = normalizeSpans(next, state.text.length);
+
+        pushHistory(state);
+        renderAll();
+        saveDraft();
+        setSelectionRange(start, end);
+        showMessage('已清除所選文字格式。', 'success');
+      }
+
+      function insertNewlineToken() {
+        const { start, end } = getSelectionRange();
+        const insertText = '\\n';
+        const newText = state.text.slice(0, start) + insertText + state.text.slice(end);
+        const replacedLen = end - start;
+        const delta = insertText.length - replacedLen;
+        const nextSpans = [];
+
+        for (const span of state.spans) {
+          if (span.end <= start) {
+            nextSpans.push({ ...span });
+            continue;
+          }
+
+          if (span.start >= end) {
+            nextSpans.push({
+              start: span.start + delta,
+              end: span.end + delta,
+              color: span.color
+            });
+            continue;
+          }
+
+          if (span.start < start && span.end > end) {
+            nextSpans.push({
+              start: span.start,
+              end: span.end + delta,
+              color: span.color
+            });
+            continue;
+          }
+
+          if (span.start < start && span.end > start && span.end <= end) {
+            nextSpans.push({
+              start: span.start,
+              end: start,
+              color: span.color
+            });
+            continue;
+          }
+
+          if (span.start >= start && span.start < end && span.end > end) {
+            nextSpans.push({
+              start: start + insertText.length,
+              end: span.end + delta,
+              color: span.color
+            });
+            continue;
+          }
+        }
+
+        state.text = newText;
+        state.spans = normalizeSpans(nextSpans, state.text.length);
+
+        editor.value = state.text;
+        pushHistory(state);
+        renderAll();
+        saveDraft();
+
+        const caret = start + insertText.length;
+        setSelectionRange(caret, caret);
+        showMessage('已插入字面值 \\n。', 'success');
+      }
+
+      function openClearDialog() {
+        dialogMask.classList.add('show');
+        dialogMask.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeClearDialog() {
+        dialogMask.classList.remove('show');
+        dialogMask.setAttribute('aria-hidden', 'true');
+      }
+
+      function clearAll() {
+        closeClearDialog();
+
+        state = createEmptyState();
+        editor.value = '';
+        pushHistory(state);
+        renderAll();
+        clearDraft();
+
+        requestAnimationFrame(() => {
+          editor.focus();
+        });
+
+        showMessage('已清空全文與草稿。', 'success');
+      }
+
+      async function copyOutput() {
+        if (!output.value) {
+          showMessage('目前沒有可複製的內容。', 'warn');
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(output.value);
+          showMessage('已複製輸出內容。', 'success');
+        } catch (e) {
+          output.focus();
+          output.select();
+          showMessage('自動複製失敗，已幫你選取內容，請手動複製。', 'error');
+        }
+      }
+
+      function buildSegments(text, spans) {
+        const points = new Set([0, text.length]);
+
+        spans.forEach(s => {
+          points.add(s.start);
+          points.add(s.end);
+        });
+
+        const sorted = Array.from(points).sort((a, b) => a - b);
+        const segments = [];
+
+        for (let i = 0; i < sorted.length - 1; i++) {
+          const start = sorted[i];
+          const end = sorted[i + 1];
+          if (start === end) continue;
+
+          const activeSpans = spans
+            .filter(s => s.start <= start && s.end >= end)
+            .sort((a, b) => {
+              if (a.start !== b.start) return a.start - b.start;
+              if (a.end !== b.end) return b.end - a.end;
+              return colorOrder(a.color, b.color);
+            });
+
+          segments.push({
+            start,
+            end,
+            text: text.slice(start, end),
+            colors: activeSpans.map(s => s.color)
+          });
+        }
+
+        return segments;
+      }
+
+      function renderNestedChunk(text, colors) {
+        let chunk = escapeHtml(text)
+          .replace(/\\n/g, '<span class="token-newline">\\\\n</span>')
+          .replace(/\n/g, '<br>');
+
+        for (let i = colors.length - 1; i >= 0; i--) {
+          chunk = '<span class="' + COLOR_CLASS[colors[i]] + '">' + chunk + '</span>';
+        }
+
+        return chunk;
+      }
+
+      function renderPreview() {
+        if (!state.text) {
+          preview.innerHTML = '';
+          return;
+        }
+
+        const segments = buildSegments(state.text, state.spans);
+        let html = '';
+
+        for (const seg of segments) {
+          html += renderNestedChunk(seg.text, seg.colors);
+        }
+
+        preview.innerHTML = html;
+      }
+
+      function serializeToGameFormat(text, spans) {
+        if (!text) return '';
+
+        const starts = new Map();
+        const ends = new Map();
+
+        spans.forEach(span => {
+          if (!starts.has(span.start)) starts.set(span.start, []);
+          if (!ends.has(span.end)) ends.set(span.end, []);
+          starts.get(span.start).push(span);
+          ends.get(span.end).push(span);
+        });
+
+        for (const arr of starts.values()) {
+          arr.sort((a, b) => {
+            if (a.start !== b.start) return a.start - b.start;
+            if (a.end !== b.end) return b.end - a.end;
+            return colorOrder(a.color, b.color);
+          });
+        }
+
+        for (const arr of ends.values()) {
+          arr.sort((a, b) => {
+            if (a.start !== b.start) return b.start - a.start;
+            if (a.end !== b.end) return a.end - b.end;
+            return colorOrder(b.color, a.color);
+          });
+        }
+
+        let result = '';
+
+        for (let i = 0; i <= text.length; i++) {
+          if (ends.has(i)) {
+            for (const span of ends.get(i)) {
+              result += MARKERS[span.color];
+            }
+          }
+
+          if (starts.has(i)) {
+            for (const span of starts.get(i)) {
+              result += MARKERS[span.color];
+            }
+          }
+
+          if (i < text.length) {
+            result += text[i];
+          }
+        }
+
+        return result;
+      }
+
+      function renderOutput() {
+        output.value = serializeToGameFormat(state.text, state.spans);
+      }
+
+      function updateStatus() {
+        const lineCount = state.text.length ? state.text.split('\n').length : 1;
+        const storageLabel = storage.type === 'localStorage' ? '本機保存可用' : '本次頁面暫存';
+
+        editorStatus.innerHTML =
+          '<strong>編輯狀態：</strong>字數 ' + state.text.length +
+          ' ｜ 行數 ' + lineCount +
+          ' ｜ 格式區段 ' + state.spans.length +
+          ' ｜ ' + storageLabel;
+
+        outputStatus.innerHTML =
+          '<strong>輸出狀態：</strong>已自動轉換 ｜ 輸出長度 ' + output.value.length;
+      }
+
+      function renderAll() {
+        state.spans = normalizeSpans(state.spans, state.text.length);
+        renderPreview();
+        renderOutput();
+        updateStatus();
+        updateUndoRedoButtons();
+      }
+
+      function handleEditorInput() {
+        if (isRestoring) return;
+
+        const oldText = state.text;
+        const newText = editor.value;
+
+        state = {
+          text: newText,
+          spans: adjustSpansForTextChange(oldText, newText, state.spans)
+        };
+
+        pushHistory(state);
+        renderAll();
+        saveDraft();
+      }
+
+      function handleToolbarClick(e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        const action = btn.getAttribute('data-action');
+
+        if (action === 'color') return applyColor(btn.getAttribute('data-color'));
+        if (action === 'clear-format') return clearFormat();
+        if (action === 'newline-token') return insertNewlineToken();
+        if (action === 'undo') return undo();
+        if (action === 'redo') return redo();
+        if (action === 'copy') return copyOutput();
+        if (action === 'clear-all') return openClearDialog();
+      }
+
+      function handleKeyboardShortcuts(e) {
+        const key = e.key.toLowerCase();
+
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z') {
+          e.preventDefault();
+          undo();
+          return;
+        }
+
+        if ((e.ctrlKey || e.metaKey) && (key === 'y' || (e.shiftKey && key === 'z'))) {
+          e.preventDefault();
+          redo();
+        }
+      }
+
+      toolbar.addEventListener('click', handleToolbarClick);
+      editor.addEventListener('input', handleEditorInput);
+      editor.addEventListener('keydown', handleKeyboardShortcuts);
+
+      dialogCancel.addEventListener('click', closeClearDialog);
+      dialogConfirm.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearAll();
+      });
+
+      dialogMask.addEventListener('click', function (e) {
+        if (e.target === dialogMask) {
+          closeClearDialog();
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && dialogMask.classList.contains('show')) {
+          closeClearDialog();
+        }
+      });
+
+      const loaded = loadDraft();
+      if (!loaded) {
+        pushHistory(state);
+        renderAll();
+        if (storage.type !== 'localStorage') {
+          showMessage('目前環境不支援本機儲存，已改用本次頁面暫存。', 'warn');
+        }
+      } else {
+        updateUndoRedoButtons();
+        if (storage.type !== 'localStorage') {
+          showMessage('目前環境不支援本機儲存，已改用本次頁面暫存。', 'warn');
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
