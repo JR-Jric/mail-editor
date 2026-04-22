@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>三國志戰略版 同盟信件編輯器</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>三國志戰略版 同盟信件編輯器｜手機優化版 v2</title>
   <style>
     :root{
       --bg:#0f172a;
@@ -19,23 +19,26 @@
       --accent:#38bdf8;
       --danger:#ef4444;
       --shadow:0 10px 30px rgba(0,0,0,.25);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     *{box-sizing:border-box}
-
+    html,body{margin:0;padding:0}
     body{
-      margin:0;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;
       color:var(--text);
       background:
         radial-gradient(circle at top, rgba(56,189,248,.08), transparent 30%),
         linear-gradient(180deg,#0b1220 0%, #0f172a 100%);
       min-height:100vh;
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+      overscroll-behavior-y:contain;
     }
 
     .container{
       width:min(1280px, calc(100% - 24px));
-      margin:24px auto;
+      margin:20px auto calc(20px + var(--safe-bottom));
     }
 
     .header,.toolbar,.panel,.dialog{
@@ -70,27 +73,38 @@
       margin-bottom:16px;
       position:sticky;
       top:10px;
-      z-index:10;
-      backdrop-filter:blur(8px);
+      z-index:30;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
     }
 
     button{
       appearance:none;
+      -webkit-appearance:none;
       border:1px solid var(--line);
       background:var(--panel);
       color:var(--text);
       border-radius:12px;
-      padding:10px 14px;
+      padding:12px 14px;
       font-size:15px;
       cursor:pointer;
       transition:.12s ease;
       font-weight:700;
+      min-height:46px;
+      touch-action:manipulation;
+      user-select:none;
+      -webkit-user-select:none;
+      -webkit-tap-highlight-color:transparent;
     }
 
     button:hover{
       transform:translateY(-1px);
       background:#273449;
       border-color:#475569;
+    }
+
+    button:active{
+      transform:scale(.98);
     }
 
     button:disabled{
@@ -110,6 +124,7 @@
       display:grid;
       grid-template-columns: 1.08fr .92fr;
       gap:16px;
+      align-items:start;
     }
 
     .panel-head{
@@ -138,41 +153,79 @@
       font-family:inherit;
     }
 
-    textarea.editor{
+    .editor-stack{
+      position:relative;
       width:100%;
-      min-height:420px;
-      resize:vertical;
+      min-height:460px;
       border:1px solid var(--line);
       border-radius:14px;
       background:#0b1220;
-      color:#fff;
-      padding:14px 16px;
-      font-size:16px;
-      line-height:1.8;
-      outline:none;
-      white-space:pre-wrap;
-      word-break:break-word;
-      -webkit-text-size-adjust:100%;
-      touch-action:manipulation;
+      overflow:hidden;
     }
 
-    .preview{
+    .editor-preview,
+    textarea.editor{
       width:100%;
-      min-height:220px;
-      border:1px solid var(--line);
-      border-radius:14px;
-      background:#0b1220;
+      min-height:460px;
       padding:14px 16px;
-      line-height:1.8;
+      font-size:16px;
+      line-height:1.85;
       white-space:pre-wrap;
       word-break:break-word;
       overflow:auto;
+      -webkit-text-size-adjust:100%;
+      tab-size:2;
+    }
+
+    .editor-preview{
+      position:absolute;
+      inset:0;
       color:#fff;
+      pointer-events:none;
+      z-index:1;
+    }
+
+    .editor-preview.is-empty::before{
+      content:attr(data-placeholder);
+      color:#64748b;
+      white-space:pre-wrap;
+    }
+
+    textarea.editor{
+      position:relative;
+      z-index:2;
+      resize:vertical;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color:transparent;
+      caret-color:#ffffff;
+      outline:none;
+      display:block;
+      touch-action:manipulation;
+    }
+
+    textarea.editor::selection{
+      background:rgba(96,165,250,.34);
+    }
+
+    textarea.editor::-webkit-scrollbar,
+    .editor-preview::-webkit-scrollbar,
+    .output::-webkit-scrollbar{
+      width:10px;
+      height:10px;
+    }
+
+    textarea.editor::-webkit-scrollbar-thumb,
+    .editor-preview::-webkit-scrollbar-thumb,
+    .output::-webkit-scrollbar-thumb{
+      background:#334155;
+      border-radius:999px;
     }
 
     .output{
       width:100%;
-      min-height:220px;
+      min-height:460px;
       resize:vertical;
       border:1px solid var(--line);
       border-radius:14px;
@@ -180,11 +233,10 @@
       color:#e2e8f0;
       padding:14px 16px;
       font-size:14px;
-      line-height:1.7;
+      line-height:1.75;
       outline:none;
       white-space:pre-wrap;
       word-break:break-word;
-      margin-top:12px;
     }
 
     .status,.rules,.legend{
@@ -229,6 +281,7 @@
       margin:0 2px;
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       line-height:1.4;
+      transform:translateY(-1px);
     }
 
     .footer{
@@ -280,6 +333,7 @@
       justify-content:flex-end;
       gap:10px;
       margin-top:16px;
+      flex-wrap:wrap;
     }
 
     @media (max-width: 960px){
@@ -291,14 +345,22 @@
         font-size:24px;
       }
 
+      .editor-stack,
+      .editor-preview,
+      textarea.editor,
+      .output{
+        min-height:380px;
+      }
+
+      .editor-preview,
       textarea.editor{
-        min-height:360px;
         font-size:16px;
       }
 
       .toolbar{
         gap:8px;
         padding:12px;
+        top:8px;
       }
 
       .toolbar button{
@@ -306,25 +368,41 @@
         min-width:72px;
         padding:12px 10px;
         font-size:15px;
+        min-height:48px;
       }
     }
 
     @media (max-width: 560px){
       .container{
         width:min(100%, calc(100% - 12px));
-        margin:12px auto;
+        margin:12px auto calc(12px + var(--safe-bottom));
       }
 
       .header,.toolbar,.panel{
         border-radius:14px;
       }
 
+      .header{
+        padding:16px;
+      }
+
       .panel-body{
         padding:12px;
       }
 
+      .panel-head{
+        padding:12px 14px;
+      }
+
       .toolbar button{
         flex:1 1 calc(33.333% - 8px);
+      }
+
+      .editor-preview,
+      textarea.editor,
+      .output{
+        padding:12px 14px;
+        min-height:340px;
       }
     }
   </style>
@@ -334,7 +412,7 @@
     <section class="header">
       <h1>三國志戰略版 同盟信件編輯器</h1>
       <p>
-        成品版：使用原生文字輸入 + 資料模型格式系統，提升手機選字穩定性、複雜巢狀精準度、格式套用可靠性。<br>
+        手機操作優化版 v2：疊層式 WYSIWYG，重點改善手機選字、工具列點按、輸入法、焦點切換與操作穩定性。<br>
         顏色規則：藍字 <code>@文字@</code>、紅字 <code>&amp;文字&amp;</code>、綠字 <code>$文字$</code>、黃字 <code>#文字#</code>。
       </p>
     </section>
@@ -355,24 +433,34 @@
     <section class="layout">
       <div class="panel">
         <div class="panel-head">
-          <h2>輸入區</h2>
+          <h2>即見即所得編輯區</h2>
           <p>
-            直接輸入文字並使用原生選取套用格式。<br>
+            直接輸入文字並選取套用格式。<br>
             按 <strong>Enter</strong> 是真正換行；按工具列 <strong>換行</strong> 會插入字面值 <code>\n</code>。
           </p>
         </div>
         <div class="panel-body">
-          <textarea
-            id="editor"
-            class="editor"
-            placeholder="請在此輸入同盟信件內容，選取文字後按上方按鈕套用顏色。"
-            spellcheck="false"
-          ></textarea>
+          <div class="editor-stack" id="editorStack">
+            <div
+              id="editorPreview"
+              class="editor-preview is-empty"
+              data-placeholder="請在此輸入同盟信件內容，選取文字後按上方按鈕套用顏色。"
+            ></div>
+            <textarea
+              id="editor"
+              class="editor"
+              placeholder=""
+              spellcheck="false"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+            ></textarea>
+          </div>
 
           <div class="status" id="editorStatus"><strong>編輯狀態：</strong>等待輸入</div>
           <div class="legend">
-            <strong>選取規則：</strong>
-            此版本直接使用原生文字選取，不在輸入區做富文字 DOM 編輯，因此在手機與輸入法情境下更穩定。
+            <strong>手機優化說明：</strong>
+            這版會快取最近一次選取範圍，並在點工具列時優先使用快取範圍，降低手機瀏覽器因失焦導致選字消失的機率。
           </div>
           <div class="msg info" id="message"></div>
         </div>
@@ -380,11 +468,10 @@
 
       <div class="panel">
         <div class="panel-head">
-          <h2>預覽與輸出</h2>
-          <p>上方為彩色預覽；下方為可直接複製到遊戲內的輸出結果。</p>
+          <h2>轉換可複製</h2>
+          <p>下方為可直接複製到遊戲內的輸出結果。</p>
         </div>
         <div class="panel-body">
-          <div id="preview" class="preview"></div>
           <textarea id="output" class="output" readonly spellcheck="false"></textarea>
 
           <div class="status" id="outputStatus"><strong>輸出狀態：</strong>已自動轉換</div>
@@ -394,21 +481,21 @@
             1. 使用者按 <strong>Enter</strong> 的實際換行 → 輸出保持<strong>真正換行</strong><br>
             2. 使用者按工具列 <strong>換行</strong> → 插入字面值 <code>\n</code>，輸出顯示為 <code>\n</code><br>
             3. 同色重疊 → <strong>自動合併</strong><br>
-            4. 不同色可巢狀 → <strong>預覽採真正巢狀渲染</strong>
+            4. 不同色可巢狀 → <strong>即見即所得區採真正巢狀渲染</strong>
           </div>
         </div>
       </div>
     </section>
 
     <div class="footer">
-      本頁會嘗試自動保存草稿；若目前執行環境不允許使用本機儲存，則會自動改為本次頁面暫存，不影響編輯功能。
+      本頁會自動保存草稿；若目前執行環境不允許使用本機儲存，則會自動改為本次頁面暫存。
     </div>
   </div>
 
   <div class="dialog-mask" id="dialogMask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
       <h3 id="dialogTitle">確認清空全文</h3>
-      <p>這會清除目前文字、格式資料，以及可用時的本機草稿。此操作可再用「復原」返回目前這次頁面中的內容。</p>
+      <p>這會清除目前文字、格式資料，以及可用時的本機草稿。此操作仍可用「復原」嘗試回到此次頁面中的內容。</p>
       <div class="dialog-actions">
         <button type="button" id="dialogCancel">取消</button>
         <button type="button" class="btn-danger" id="dialogConfirm">確認清空</button>
@@ -419,7 +506,8 @@
   <script>
     (function () {
       const editor = document.getElementById('editor');
-      const preview = document.getElementById('preview');
+      const editorPreview = document.getElementById('editorPreview');
+      const editorStack = document.getElementById('editorStack');
       const output = document.getElementById('output');
       const message = document.getElementById('message');
       const editorStatus = document.getElementById('editorStatus');
@@ -432,7 +520,8 @@
       const dialogCancel = document.getElementById('dialogCancel');
       const dialogConfirm = document.getElementById('dialogConfirm');
 
-      const STORAGE_KEY = 'sgz-mail-editor-model-v4';
+      const STORAGE_KEY = 'sgz-mail-editor-model-v6-mobile';
+      const MAX_HISTORY = 200;
 
       const MARKERS = {
         blue: '@',
@@ -452,6 +541,12 @@
       let history = [];
       let historyIndex = -1;
       let isRestoring = false;
+      let isComposing = false;
+      let lastSelection = { start: 0, end: 0, direction: 'none', timestamp: 0 };
+      let suppressSelectionSnapshotUntil = 0;
+      let saveDraftTimer = null;
+      let messageTimer = null;
+      let rafScrollSync = 0;
 
       const memoryStorage = {};
       const storage = createSafeStorage();
@@ -507,14 +602,26 @@
         };
       }
 
-      function showMessage(text, type = 'info') {
+      function statesEqual(a, b) {
+        if (!a || !b) return false;
+        if (a.text !== b.text) return false;
+        if (a.spans.length !== b.spans.length) return false;
+        for (let i = 0; i < a.spans.length; i++) {
+          const x = a.spans[i];
+          const y = b.spans[i];
+          if (x.start !== y.start || x.end !== y.end || x.color !== y.color) return false;
+        }
+        return true;
+      }
+
+      function showMessage(text, type = 'info', duration = 2400) {
         message.textContent = text;
         message.className = 'msg ' + type;
-        clearTimeout(showMessage._timer);
-        showMessage._timer = setTimeout(() => {
+        clearTimeout(messageTimer);
+        messageTimer = setTimeout(() => {
           message.textContent = '';
           message.className = 'msg info';
-        }, 2400);
+        }, duration);
       }
 
       function escapeHtml(text) {
@@ -529,9 +636,22 @@
         if (replaceCurrent && historyIndex >= 0) {
           history[historyIndex] = snapshot;
         } else {
+          const current = historyIndex >= 0 ? history[historyIndex] : null;
+          if (current && statesEqual(current, snapshot)) {
+            updateUndoRedoButtons();
+            return;
+          }
+
           history = history.slice(0, historyIndex + 1);
           history.push(snapshot);
-          historyIndex = history.length - 1;
+
+          if (history.length > MAX_HISTORY) {
+            const overflow = history.length - MAX_HISTORY;
+            history.splice(0, overflow);
+            historyIndex = history.length - 1;
+          } else {
+            historyIndex = history.length - 1;
+          }
         }
 
         updateUndoRedoButtons();
@@ -550,11 +670,13 @@
         editor.value = state.text;
         isRestoring = false;
         renderAll();
-        saveDraft();
+        queueSaveDraft(true);
         updateUndoRedoButtons();
+        preserveFocusSoft();
       }
 
       function undo() {
+        if (isComposing) return showMessage('輸入法組字中，請先完成輸入再復原。', 'warn');
         if (historyIndex > 0) {
           restoreHistory(historyIndex - 1);
           showMessage('已復原。', 'success');
@@ -562,10 +684,17 @@
       }
 
       function redo() {
+        if (isComposing) return showMessage('輸入法組字中，請先完成輸入再重做。', 'warn');
         if (historyIndex < history.length - 1) {
           restoreHistory(historyIndex + 1);
           showMessage('已重做。', 'success');
         }
+      }
+
+      function queueSaveDraft(immediate = false) {
+        clearTimeout(saveDraftTimer);
+        if (immediate) return saveDraft();
+        saveDraftTimer = setTimeout(saveDraft, 180);
       }
 
       function saveDraft() {
@@ -643,7 +772,6 @@
               out.push({ ...span });
               continue;
             }
-
             if (span.start <= last.end) {
               last.end = Math.max(last.end, span.end);
             } else {
@@ -726,22 +854,100 @@
         return normalizeSpans(next, newText.length);
       }
 
-      function getSelectionRange() {
-        return {
-          start: editor.selectionStart,
-          end: editor.selectionEnd
-        };
+      function clampRange(start, end) {
+        const len = state.text.length;
+        let s = Math.max(0, Math.min(len, Number(start) || 0));
+        let e = Math.max(0, Math.min(len, Number(end) || 0));
+        if (s > e) [s, e] = [e, s];
+        return { start: s, end: e };
       }
 
-      function setSelectionRange(start, end) {
-        editor.focus();
-        editor.setSelectionRange(start, end);
+      function snapshotSelection(force = false) {
+        if (!force && Date.now() < suppressSelectionSnapshotUntil) return;
+
+        try {
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          const direction = editor.selectionDirection || 'none';
+          if (typeof start === 'number' && typeof end === 'number') {
+            lastSelection = {
+              start,
+              end,
+              direction,
+              timestamp: Date.now()
+            };
+          }
+        } catch (e) {}
+      }
+
+      function getSelectionRange(preferCached = false) {
+        const active = document.activeElement === editor;
+        let start = 0;
+        let end = 0;
+        let direction = 'none';
+
+        try {
+          start = editor.selectionStart;
+          end = editor.selectionEnd;
+          direction = editor.selectionDirection || 'none';
+        } catch (e) {}
+
+        const nativeLooksInvalid =
+          !active ||
+          typeof start !== 'number' ||
+          typeof end !== 'number' ||
+          (start === 0 && end === 0 && lastSelection.timestamp && lastSelection.start !== lastSelection.end);
+
+        if (preferCached && lastSelection.timestamp && nativeLooksInvalid) {
+          const range = clampRange(lastSelection.start, lastSelection.end);
+          return { start: range.start, end: range.end, direction: lastSelection.direction || 'none' };
+        }
+
+        const range = clampRange(start, end);
+        return { start: range.start, end: range.end, direction };
+      }
+
+      function setSelectionRange(start, end, direction = 'none', focusMode = 'soft') {
+        const range = clampRange(start, end);
+        suppressSelectionSnapshotUntil = Date.now() + 120;
+
+        if (focusMode === 'soft') {
+          preserveFocusSoft();
+        } else {
+          editor.focus();
+        }
+
+        requestAnimationFrame(() => {
+          try {
+            editor.setSelectionRange(range.start, range.end, direction);
+            lastSelection = {
+              start: range.start,
+              end: range.end,
+              direction,
+              timestamp: Date.now()
+            };
+          } catch (e) {}
+        });
+      }
+
+      function preserveFocusSoft() {
+        try {
+          editor.focus({ preventScroll: true });
+        } catch (e) {
+          try { editor.focus(); } catch (_) {}
+        }
       }
 
       function applyColor(color) {
-        const { start, end } = getSelectionRange();
+        if (isComposing) {
+          showMessage('輸入法組字中，請先完成輸入再套色。', 'warn');
+          return;
+        }
+
+        const { start, end, direction } = getSelectionRange(true);
         if (start === end) {
           showMessage('請先選取文字後再套用顏色。', 'warn');
+          preserveFocusSoft();
           return;
         }
 
@@ -752,15 +958,21 @@
 
         pushHistory(state);
         renderAll();
-        saveDraft();
-        setSelectionRange(start, end);
+        queueSaveDraft();
+        setSelectionRange(start, end, direction, 'soft');
         showMessage('已套用顏色格式。', 'success');
       }
 
       function clearFormat() {
-        const { start, end } = getSelectionRange();
+        if (isComposing) {
+          showMessage('輸入法組字中，請先完成輸入再清除格式。', 'warn');
+          return;
+        }
+
+        const { start, end, direction } = getSelectionRange(true);
         if (start === end) {
           showMessage('請先選取要清除格式的文字。', 'warn');
+          preserveFocusSoft();
           return;
         }
 
@@ -785,13 +997,18 @@
 
         pushHistory(state);
         renderAll();
-        saveDraft();
-        setSelectionRange(start, end);
+        queueSaveDraft();
+        setSelectionRange(start, end, direction, 'soft');
         showMessage('已清除所選文字格式。', 'success');
       }
 
       function insertNewlineToken() {
-        const { start, end } = getSelectionRange();
+        if (isComposing) {
+          showMessage('輸入法組字中，請先完成輸入再插入。', 'warn');
+          return;
+        }
+
+        const { start, end } = getSelectionRange(true);
         const insertText = '\\n';
         const newText = state.text.slice(0, start) + insertText + state.text.slice(end);
         const replacedLen = end - start;
@@ -847,14 +1064,15 @@
         editor.value = state.text;
         pushHistory(state);
         renderAll();
-        saveDraft();
+        queueSaveDraft();
 
         const caret = start + insertText.length;
-        setSelectionRange(caret, caret);
+        setSelectionRange(caret, caret, 'none', 'soft');
         showMessage('已插入字面值 \\n。', 'success');
       }
 
       function openClearDialog() {
+        snapshotSelection(true);
         dialogMask.classList.add('show');
         dialogMask.setAttribute('aria-hidden', 'false');
       }
@@ -862,6 +1080,7 @@
       function closeClearDialog() {
         dialogMask.classList.remove('show');
         dialogMask.setAttribute('aria-hidden', 'true');
+        preserveFocusSoft();
       }
 
       function clearAll() {
@@ -874,7 +1093,7 @@
         clearDraft();
 
         requestAnimationFrame(() => {
-          editor.focus();
+          setSelectionRange(0, 0, 'none', 'soft');
         });
 
         showMessage('已清空全文與草稿。', 'success');
@@ -892,7 +1111,9 @@
         } catch (e) {
           output.focus();
           output.select();
-          showMessage('自動複製失敗，已幫你選取內容，請手動複製。', 'error');
+          showMessage('自動複製失敗，已幫你選取內容，請手動複製。', 'error', 3200);
+        } finally {
+          setTimeout(() => preserveFocusSoft(), 30);
         }
       }
 
@@ -943,9 +1164,12 @@
         return chunk;
       }
 
-      function renderPreview() {
+      function renderEditorPreview() {
         if (!state.text) {
-          preview.innerHTML = '';
+          editorPreview.innerHTML = '';
+          editorPreview.classList.add('is-empty');
+          syncEditorScroll();
+          syncHeights();
           return;
         }
 
@@ -956,7 +1180,10 @@
           html += renderNestedChunk(seg.text, seg.colors);
         }
 
-        preview.innerHTML = html;
+        editorPreview.innerHTML = html;
+        editorPreview.classList.remove('is-empty');
+        syncHeights();
+        syncEditorScroll();
       }
 
       function serializeToGameFormat(text, spans) {
@@ -1023,15 +1250,31 @@
           '<strong>編輯狀態：</strong>字數 ' + state.text.length +
           ' ｜ 行數 ' + lineCount +
           ' ｜ 格式區段 ' + state.spans.length +
-          ' ｜ ' + storageLabel;
+          ' ｜ ' + storageLabel +
+          (isComposing ? ' ｜ 輸入法組字中' : '');
 
         outputStatus.innerHTML =
           '<strong>輸出狀態：</strong>已自動轉換 ｜ 輸出長度 ' + output.value.length;
       }
 
+      function syncEditorScroll() {
+        cancelAnimationFrame(rafScrollSync);
+        rafScrollSync = requestAnimationFrame(() => {
+          editorPreview.scrollTop = editor.scrollTop;
+          editorPreview.scrollLeft = editor.scrollLeft;
+        });
+      }
+
+      function syncHeights() {
+        const h = Math.max(editor.scrollHeight, editorPreview.scrollHeight, 460);
+        editor.style.minHeight = h + 'px';
+        editorPreview.style.minHeight = h + 'px';
+        editorStack.style.minHeight = h + 'px';
+      }
+
       function renderAll() {
         state.spans = normalizeSpans(state.spans, state.text.length);
-        renderPreview();
+        renderEditorPreview();
         renderOutput();
         updateStatus();
         updateUndoRedoButtons();
@@ -1039,6 +1282,12 @@
 
       function handleEditorInput() {
         if (isRestoring) return;
+        if (isComposing) {
+          state.text = editor.value;
+          renderAll();
+          snapshotSelection(true);
+          return;
+        }
 
         const oldText = state.text;
         const newText = editor.value;
@@ -1050,22 +1299,36 @@
 
         pushHistory(state);
         renderAll();
-        saveDraft();
+        queueSaveDraft();
+        snapshotSelection(true);
       }
 
-      function handleToolbarClick(e) {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-
-        const action = btn.getAttribute('data-action');
-
-        if (action === 'color') return applyColor(btn.getAttribute('data-color'));
+      function runToolbarAction(action, button) {
+        if (!action) return;
+        if (action === 'color') return applyColor(button.getAttribute('data-color'));
         if (action === 'clear-format') return clearFormat();
         if (action === 'newline-token') return insertNewlineToken();
         if (action === 'undo') return undo();
         if (action === 'redo') return redo();
         if (action === 'copy') return copyOutput();
         if (action === 'clear-all') return openClearDialog();
+      }
+
+      function handleToolbarPressStart(e) {
+        const btn = e.target.closest('button');
+        if (!btn || btn.disabled) return;
+        snapshotSelection(true);
+
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+
+      function handleToolbarClick(e) {
+        const btn = e.target.closest('button');
+        if (!btn || btn.disabled) return;
+        e.preventDefault();
+        runToolbarAction(btn.getAttribute('data-action'), btn);
       }
 
       function handleKeyboardShortcuts(e) {
@@ -1083,9 +1346,48 @@
         }
       }
 
+      function handleSelectionRelatedEvent() {
+        snapshotSelection();
+      }
+
+      function handleEditorFocus() {
+        snapshotSelection(true);
+      }
+
+      function handleBeforeUnload() {
+        saveDraft();
+      }
+
+      toolbar.addEventListener('pointerdown', handleToolbarPressStart, { passive: false });
+      toolbar.addEventListener('mousedown', handleToolbarPressStart, { passive: false });
+      toolbar.addEventListener('touchstart', handleToolbarPressStart, { passive: false });
       toolbar.addEventListener('click', handleToolbarClick);
+
       editor.addEventListener('input', handleEditorInput);
       editor.addEventListener('keydown', handleKeyboardShortcuts);
+      editor.addEventListener('keyup', handleSelectionRelatedEvent);
+      editor.addEventListener('select', handleSelectionRelatedEvent);
+      editor.addEventListener('mouseup', handleSelectionRelatedEvent);
+      editor.addEventListener('touchend', function () {
+        setTimeout(() => snapshotSelection(true), 0);
+      }, { passive: true });
+      editor.addEventListener('focus', handleEditorFocus);
+      editor.addEventListener('scroll', syncEditorScroll);
+
+      editor.addEventListener('compositionstart', function () {
+        isComposing = true;
+        updateStatus();
+      });
+
+      editor.addEventListener('compositionend', function () {
+        isComposing = false;
+        state.text = editor.value;
+        state.spans = normalizeSpans(state.spans, state.text.length);
+        pushHistory(state);
+        renderAll();
+        queueSaveDraft();
+        snapshotSelection(true);
+      });
 
       dialogCancel.addEventListener('click', closeClearDialog);
       dialogConfirm.addEventListener('click', function (e) {
@@ -1106,19 +1408,38 @@
         }
       });
 
+      document.addEventListener('selectionchange', function () {
+        if (document.activeElement === editor) {
+          snapshotSelection();
+        }
+      });
+
+      window.addEventListener('resize', function () {
+        syncHeights();
+        syncEditorScroll();
+      });
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('pagehide', saveDraft);
+
       const loaded = loadDraft();
       if (!loaded) {
         pushHistory(state);
         renderAll();
-        if (storage.type !== 'localStorage') {
-          showMessage('目前環境不支援本機儲存，已改用本次頁面暫存。', 'warn');
-        }
       } else {
         updateUndoRedoButtons();
-        if (storage.type !== 'localStorage') {
-          showMessage('目前環境不支援本機儲存，已改用本次頁面暫存。', 'warn');
-        }
       }
+
+      if (storage.type !== 'localStorage') {
+        showMessage('目前環境不支援本機儲存，已改用本次頁面暫存。', 'warn', 3200);
+      }
+
+      requestAnimationFrame(() => {
+        syncHeights();
+        syncEditorScroll();
+        preserveFocusSoft();
+        setSelectionRange(state.text.length, state.text.length, 'none', 'soft');
+      });
     })();
   </script>
 </body>
